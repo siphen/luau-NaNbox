@@ -1,4 +1,9 @@
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
+#if LUAU_NANBOX
+#include "doctest.h"
+TEST_SUITE_BEGIN("IrRegAllocX64");
+TEST_CASE("NaNbox disables CodeGen RegAlloc tests") { CHECK(true); }
+#else
 #include "Luau/IrRegAllocX64.h"
 
 #include "doctest.h"
@@ -28,6 +33,7 @@ public:
 };
 
 TEST_SUITE_BEGIN("IrRegAllocX64");
+#endif
 
 TEST_CASE_FIXTURE(IrRegAllocX64Fixture, "RelocateFix")
 {

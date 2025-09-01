@@ -26,6 +26,153 @@ typedef struct GCheader
     CommonHeader;
 } GCheader;
 
+
+// NaNbox-enabled TValue & accessors (behind LUAU_NANBOX)
+#if LUAU_NANBOX
+#include "nanbox.h"
+#include "lmem.h"
+
+typedef struct lua_TValue
+{
+    uint64_t nb;
+} TValue;
+
+// Forward declarations needed by various VM sources
+typedef struct TString TString;
+typedef struct Proto Proto;
+typedef struct Closure Closure;
+typedef struct Udata Udata;
+typedef struct UpVal UpVal;
+typedef struct LuaTable LuaTable;
+
+// String access helpers and nilobject forward must be visible early to avoid
+// include-order dependencies across translation units when LUAU_NANBOX is on.
+#ifndef getstr
+#define getstr(ts) (ts)->data
+#endif
+#ifndef svalue
+#define svalue(o) getstr(tsvalue(o))
+#endif
+#ifndef luaO_nilobject
+LUAI_DATA const TValue luaO_nilobject_;
+#define luaO_nilobject (&luaO_nilobject_)
+#endif
+
+static inline int nb_lua_type(uint64_t v)
+{
+    using namespace Luau::VM;
+    if (nb_isnumber(v))
+        return LUA_TNUMBER;
+    switch (nb_tag(v))
+    {
+    case NB_TNIL: return LUA_TNIL;
+    case NB_TFALSE:
+    case NB_TTRUE: return LUA_TBOOLEAN;
+    case NB_TLIGHTUD: return LUA_TLIGHTUSERDATA;
+    case NB_TVECTOR: return LUA_TVECTOR;
+    case NB_TSTRING: return LUA_TSTRING;
+    case NB_TTABLE: return LUA_TTABLE;
+    case NB_TFUNCTION: return LUA_TFUNCTION;
+    case NB_TUSERDATA: return LUA_TUSERDATA;
+    case NB_TTHREAD: return LUA_TTHREAD;
+    case NB_TBUFFER: return LUA_TBUFFER;
+    case NB_TUPVAL: return LUA_TUPVAL;
+    case NB_TPROTO: return LUA_TPROTO;
+    default: return LUA_TNONE;
+    }
+}
+
+#define ttype(o)            (nb_lua_type((o)->nb))
+
+// Type tests
+#define ttisnil(o)          (ttype(o) == LUA_TNIL)
+#define ttisnumber(o)       (ttype(o) == LUA_TNUMBER)
+#define ttisstring(o)       (ttype(o) == LUA_TSTRING)
+#define ttistable(o)        (ttype(o) == LUA_TTABLE)
+#define ttisfunction(o)     (ttype(o) == LUA_TFUNCTION)
+#define ttisboolean(o)      (ttype(o) == LUA_TBOOLEAN)
+#define ttisuserdata(o)     (ttype(o) == LUA_TUSERDATA)
+#define ttisthread(o)       (ttype(o) == LUA_TTHREAD)
+#define ttisbuffer(o)       (ttype(o) == LUA_TBUFFER)
+#define ttislightuserdata(o) (ttype(o) == LUA_TLIGHTUSERDATA)
+#if LUAU_NANBOX
+// Disable vector support under NaNbox to simplify correctness & safety
+#undef ttisvector
+#define ttisvector(o)       (0)
+#undef setvvalue
+#define setvvalue(obj, x, y, z, w) \
+    do { \
+        LUAU_ASSERT(!"Vector is unsupported in LUAU_NANBOX build"); \
+        setnilvalue(obj); \
+    } while (0)
+#else
+#define ttisvector(o)       (ttype(o) == LUA_TVECTOR)
+#endif
+#define ttisupval(o)        (ttype(o) == LUA_TUPVAL)
+
+// Accessors
+#define gcvalue(o)          ((GCObject*)(uintptr_t)Luau::VM::nb_payload((o)->nb))
+#define pvalue(o)           (Luau::VM::nb_to_lightud((o)->nb))
+#define nvalue(o)           (Luau::VM::nb_to_number((o)->nb))
+#define vvalue(o)           ((float*)(uintptr_t)Luau::VM::nb_payload((o)->nb))
+#define tsvalue(o)          (&(gcvalue(o)->ts))
+#define uvalue(o)           (&(gcvalue(o)->u))
+#define clvalue(o)          (&(gcvalue(o)->cl))
+#define hvalue(o)           (&(gcvalue(o)->h))
+#define bvalue(o)           ((Luau::VM::nb_tag((o)->nb) == Luau::VM::NB_TTRUE) ? 1 : 0)
+#define thvalue(o)          (&(gcvalue(o)->th))
+#define bufvalue(o)         (&(gcvalue(o)->buf))
+#define upvalue(o)          (&(gcvalue(o)->uv))
+
+#define l_isfalse(o)        (ttisnil(o) || (ttisboolean(o) && bvalue(o) == 0))
+
+#define lightuserdatatag(o) (0)
+
+// Internal tags used by the VM
+#define LU_TAG_ITERATOR LUA_UTAG_LIMIT
+
+// Debug checks
+#define checkconsistency(obj) LUAU_ASSERT(!iscollectable(obj) || (ttype(obj) == gcvalue(obj)->gch.tt))
+#define checkliveness(g, obj) LUAU_ASSERT(!iscollectable(obj) || ((ttype(obj) == gcvalue(obj)->gch.tt) && !isdead(g, gcvalue(obj))))
+
+// Setters
+#define setnilvalue(obj)         ((obj)->nb = Luau::VM::nb_from_nil())
+#define setnvalue(obj, x)        ((obj)->nb = Luau::VM::nb_from_number_canon((x)))
+#define setpvalue(obj, x, tag)   ((void)(tag), (obj)->nb = Luau::VM::nb_from_lightud((x)))
+#define setbvalue(obj, x)        ((obj)->nb = Luau::VM::nb_from_bool(!!(x)))
+#define setsvalue(L, obj, x)     ((obj)->nb = Luau::VM::nb_from_string((x)))
+#define setuvalue(L, obj, x)     ((obj)->nb = Luau::VM::nb_from_userdata((x)))
+#define setthvalue(L, obj, x)    ((obj)->nb = Luau::VM::nb_from_thread((x)))
+#define setbufvalue(L, obj, x)   ((obj)->nb = Luau::VM::nb_from_buffer((x)))
+#define setclvalue(L, obj, x)    ((obj)->nb = Luau::VM::nb_from_function((x)))
+#define sethvalue(L, obj, x)     ((obj)->nb = Luau::VM::nb_from_table((x)))
+#define setptvalue(L, obj, x)    ((obj)->nb = Luau::VM::nb_from_proto((x)))
+#define setupvalue(L, obj, x)    ((obj)->nb = Luau::VM::nb_from_upval((x)))
+
+#define setobj(L, obj1, obj2)    ((obj1)->nb = (obj2)->nb)
+
+// Tag override unsupported in NaNbox mode
+#define setttype(obj, tt)        ((void)0)
+
+// Additional helpers/macros expected by VM code
+#ifndef setobj2s
+#define setobj2s setobj
+#endif
+#ifndef setobjt2t
+#define setobjt2t setobj
+#endif
+#ifndef setobj2t
+#define setobj2t setobj
+#endif
+#ifndef setobj2n
+#define setobj2n setobj
+#endif
+
+// Vector setvvalue path disabled under LUAU_NANBOX (see override above)
+
+
+#else
+
 /*
 ** Union of all Lua values
 */
@@ -212,6 +359,8 @@ typedef struct lua_TValue
         checkliveness(L->global, o1); \
     }
 
+#endif // LUAU_NANBOX
+
 /*
 ** different types of sets, according to destination
 */
@@ -225,7 +374,9 @@ typedef struct lua_TValue
 // to new object (no barrier)
 #define setobj2n setobj
 
+#if !LUAU_NANBOX
 #define setttype(obj, tt) (ttype(obj) = (tt))
+#endif
 
 #define iscollectable(o) (ttype(o) >= LUA_TSTRING)
 
@@ -252,8 +403,10 @@ typedef struct TString
 } TString;
 
 
+#if !LUAU_NANBOX
 #define getstr(ts) (ts)->data
 #define svalue(o) getstr(tsvalue(o))
+#endif
 
 typedef struct Udata
 {
@@ -413,10 +566,16 @@ typedef struct Closure
 
 typedef struct TKey
 {
+#if LUAU_NANBOX
+    uint64_t nb;
+    unsigned tt : 4;
+    int next : 28; // for chaining
+#else
     ::Value value;
     int extra[LUA_EXTRA_SIZE];
     unsigned tt : 4;
     int next : 28; // for chaining
+#endif
 } TKey;
 
 typedef struct LuaNode
@@ -426,26 +585,42 @@ typedef struct LuaNode
 } LuaNode;
 
 // copy a value into a key
+#if LUAU_NANBOX
 #define setnodekey(L, node, obj) \
-    { \
+    do { \
+        LuaNode* n_ = (node); \
+        const TValue* i_o = (obj); \
+        n_->key.nb = i_o->nb; \
+        n_->key.tt = ttype(i_o); \
+    } while (0)
+#define getnodekey(L, obj, node) \
+    do { \
+        TValue* i_o = (obj); \
+        const LuaNode* n_ = (node); \
+        i_o->nb = n_->key.nb; \
+    } while (0)
+#else
+#define setnodekey(L, node, obj) \
+    do { \
         LuaNode* n_ = (node); \
         const TValue* i_o = (obj); \
         n_->key.value = i_o->value; \
         memcpy(n_->key.extra, i_o->extra, sizeof(n_->key.extra)); \
         n_->key.tt = i_o->tt; \
         checkliveness(L->global, i_o); \
-    }
+    } while (0)
 
 // copy a value from a key
 #define getnodekey(L, obj, node) \
-    { \
+    do { \
         TValue* i_o = (obj); \
         const LuaNode* n_ = (node); \
         i_o->value = n_->key.value; \
         memcpy(i_o->extra, n_->key.extra, sizeof(i_o->extra)); \
         i_o->tt = n_->key.tt; \
         checkliveness(L->global, i_o); \
-    }
+    } while (0)
+#endif
 
 // clang-format off
 typedef struct LuaTable

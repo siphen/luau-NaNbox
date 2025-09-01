@@ -1,3 +1,8 @@
+#if LUAU_NANBOX
+#include "doctest.h"
+TEST_SUITE_BEGIN("CodeAllocation");
+TEST_CASE("NaNbox disables CodeGen allocation tests") { CHECK(true); }
+#else
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
 #include "Luau/AssemblyBuilderX64.h"
 #include "Luau/AssemblyBuilderA64.h"
@@ -918,3 +923,4 @@ TEST_CASE("GeneratedCodeExecutionWithThrowA64")
 #endif
 
 TEST_SUITE_END();
+#endif

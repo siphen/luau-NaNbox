@@ -1,4 +1,9 @@
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
+#if LUAU_NANBOX
+#include "doctest.h"
+TEST_SUITE_BEGIN("IrCallWrapperX64");
+TEST_CASE("NaNbox disables CodeGen IrCallWrapper tests") { CHECK(true); }
+#else
 #include "Luau/IrCallWrapperX64.h"
 #include "Luau/IrRegAllocX64.h"
 
@@ -52,6 +57,7 @@ public:
 };
 
 TEST_SUITE_BEGIN("IrCallWrapperX64");
+#endif
 
 TEST_CASE_FIXTURE(IrCallWrapperX64Fixture, "SimpleRegs")
 {

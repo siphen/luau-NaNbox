@@ -1,6 +1,7 @@
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
 // This code is based on Lua 5.x implementation licensed under MIT License; see lua_LICENSE.txt for details
 #include "lstate.h"
+#include <cstdio>
 
 #include "ltable.h"
 #include "lstring.h"
@@ -55,7 +56,14 @@ static void f_luaopen(lua_State* L, void* ud)
     global_State* g = L->global;
     stack_init(L, L);                             // init stack
     L->gt = luaH_new(L, 0, 2);                    // table of globals
+#ifdef LUAU_NANBOX_DIAG
+    fprintf(stderr, "[nb] f_luaopen: L->gt=%p\n", (void*)L->gt);
+#endif
     sethvalue(L, registry(L), luaH_new(L, 0, 2)); // registry
+#ifdef LUAU_NANBOX_DIAG
+    if (!ttistable(registry(L)))
+        fprintf(stderr, "[nb] f_luaopen: registry not table, ttype=%d\n", ttype(registry(L)));
+#endif
     luaS_resize(L, LUA_MINSTRTABSIZE);            // initial size of string table
     luaT_init(L);
     luaS_fix(luaS_newliteral(L, LUA_MEMERRMSG)); // pin to make sure we can always throw this error

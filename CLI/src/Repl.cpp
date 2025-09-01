@@ -22,6 +22,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <fstream>
 
 #ifdef _WIN32
 #include <io.h>
@@ -789,10 +790,24 @@ int replMain(int argc, char** argv)
     }
     else
     {
+        {
+            std::ofstream f("diag_repl.txt", std::ios::app); f << "creating lua state...\n"; f.flush();
+        }
         std::unique_ptr<lua_State, void (*)(lua_State*)> globalState(luaL_newstate(), lua_close);
         lua_State* L = globalState.get();
+        if (!L)
+        {
+            std::ofstream f("diag_repl.txt", std::ios::app); f << "luaL_newstate failed\n"; f.flush();
+            return 3;
+        }
 
+        {
+            std::ofstream f("diag_repl.txt", std::ios::app); f << "setupState begin\n"; f.flush();
+        }
         setupState(L);
+        {
+            std::ofstream f("diag_repl.txt", std::ios::app); f << "setupState done\n"; f.flush();
+        }
 
         if (profile)
             profilerStart(L, profile);
@@ -805,6 +820,9 @@ int replMain(int argc, char** argv)
         for (size_t i = 0; i < files.size(); ++i)
         {
             bool isLastFile = i == files.size() - 1;
+            {
+                std::ofstream f("diag_repl.txt", std::ios::app); f << "runFile " << files[i] << "\n"; f.flush();
+            }
             failed += !runFile(files[i].c_str(), L, interactive && isLastFile);
         }
 

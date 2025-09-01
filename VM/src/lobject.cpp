@@ -13,7 +13,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if LUAU_NANBOX
+static_assert(sizeof(TValue) == 8, "NaNbox: TValue must be 8 bytes");
+// NaN-boxed canonical nilobject: QNaN with tag=NB_TNIL in bits 50..47
+const TValue luaO_nilobject_ = { 0x7ff8800000000000ull };
+#else
 const TValue luaO_nilobject_ = {{NULL}, {0}, LUA_TNIL};
+#endif
 
 int luaO_log2(unsigned int x)
 {

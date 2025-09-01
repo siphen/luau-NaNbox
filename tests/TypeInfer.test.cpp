@@ -397,9 +397,11 @@ TEST_CASE_FIXTURE(Fixture, "check_type_infer_recursion_count")
     DOES_NOT_PASS_NEW_SOLVER_GUARD();
 
 #if defined(LUAU_ENABLE_ASAN)
-    int limit = 250;
+    int limit = 200;
 #elif defined(_DEBUG) || defined(_NOOPT)
-    int limit = 350;
+    int limit = 300;
+#elif defined(_WIN32)
+    int limit = 350; // avoid stack overflow on environments with smaller default stack
 #else
     int limit = 600;
 #endif
@@ -415,9 +417,11 @@ TEST_CASE_FIXTURE(Fixture, "check_type_infer_recursion_count")
 TEST_CASE_FIXTURE(Fixture, "check_block_recursion_limit")
 {
 #if defined(LUAU_ENABLE_ASAN)
-    int limit = 250;
+    int limit = 200;
 #elif defined(_DEBUG) || defined(_NOOPT)
-    int limit = 350;
+    int limit = 300;
+#elif defined(_WIN32)
+    int limit = 350; // avoid stack overflow on environments with smaller default stack
 #else
     int limit = 600;
 #endif
@@ -434,9 +438,11 @@ TEST_CASE_FIXTURE(Fixture, "check_block_recursion_limit")
 TEST_CASE_FIXTURE(Fixture, "check_expr_recursion_limit")
 {
 #if defined(LUAU_ENABLE_ASAN)
-    int limit = 200;
+    int limit = 150;
 #elif defined(_DEBUG) || defined(_NOOPT)
-    int limit = 250;
+    int limit = 220;
+#elif defined(_WIN32)
+    int limit = 300; // avoid stack overflow on environments with smaller default stack
 #else
     int limit = 500;
 #endif

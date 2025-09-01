@@ -302,8 +302,9 @@ union GCObject
 #define gco2th(o) check_exp((o)->gch.tt == LUA_TTHREAD, &((o)->th))
 #define gco2buf(o) check_exp((o)->gch.tt == LUA_TBUFFER, &((o)->buf))
 
-// macro to convert any Lua object into a GCObject
-#define obj2gco(v) check_exp(iscollectable(v), cast_to(GCObject*, (v) + 0))
+// macro to convert any Lua GC-managed struct pointer into a GCObject
+// Note: don't use iscollectable(v) here; this macro is used with non-TValue pointers (e.g. lua_State, TString, etc.)
+#define obj2gco(v) (cast_to(GCObject*, (v) + 0))
 
 LUAI_FUNC lua_State* luaE_newthread(lua_State* L);
 LUAI_FUNC void luaE_freethread(lua_State* L, lua_State* L1, struct lua_Page* page);

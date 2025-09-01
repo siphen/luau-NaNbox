@@ -133,3 +133,10 @@
 #endif
 
 #define LUA_EXTRA_SIZE (LUA_VECTOR_SIZE - 2)
+
+// Experimental: enable 64-bit NaN-boxed value representation.
+// 0 (default): classic 16-byte TValue (Value+extra+tt)
+// 1: 8-byte NaN-boxed TValue; requires coordinated changes across VM/CodeGen.
+#ifndef LUAU_NANBOX
+#define LUAU_NANBOX 0
+#endif

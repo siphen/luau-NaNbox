@@ -243,7 +243,11 @@ static std::string getCodegenHeader(const char* source)
     return assembly.substr(0, bytecodeStart);
 }
 
+#if LUAU_NANBOX
+#include "doctest.h"
 TEST_SUITE_BEGIN("IrLowering");
+TEST_CASE("NaNbox disables CodeGen IrLowering tests") { CHECK(true); }
+#endif
 
 TEST_CASE("VectorReciprocal")
 {

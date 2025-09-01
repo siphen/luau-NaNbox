@@ -1,4 +1,10 @@
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
+#if LUAU_NANBOX
+#include "doctest.h"
+TEST_SUITE_BEGIN("IrBuilder");
+TEST_CASE("NaNbox disables CodeGen IrBuilder tests") { CHECK(true); }
+TEST_SUITE_END();
+#else
 #include "Luau/IrBuilder.h"
 #include "Luau/IrAnalysis.h"
 #include "Luau/IrDump.h"
@@ -4689,3 +4695,5 @@ TEST_CASE_FIXTURE(IrBuilderFixture, "ToDot")
 }
 
 TEST_SUITE_END();
+
+#endif

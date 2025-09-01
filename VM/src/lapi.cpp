@@ -12,6 +12,7 @@
 #include "lvm.h"
 #include "lnumutils.h"
 #include "lbuffer.h"
+#include <cstdio>
 
 #include <string.h>
 
@@ -89,6 +90,13 @@ static LUAU_NOINLINE TValue* pseudo2addr(lua_State* L, int idx)
     case LUA_GLOBALSINDEX:
     {
         sethvalue(L, &L->global->pseudotemp, L->gt);
+        #ifdef LUAU_NANBOX_DIAG
+        if (!ttistable(&L->global->pseudotemp))
+        {
+            fprintf(stderr, "[nb] GLOBALS pseudo not table: ttype=%d nb=%p L->gt=%p\n",
+                ttype(&L->global->pseudotemp), (void*)(uintptr_t)L->global->pseudotemp.nb, (void*)L->gt);
+        }
+        #endif
         return &L->global->pseudotemp;
     }
     default:
@@ -723,6 +731,13 @@ void lua_pushcclosurek(lua_State* L, lua_CFunction fn, const char* debugname, in
     while (nup--)
         setobj2n(L, &cl->c.upvals[nup], L->top + nup);
     setclvalue(L, L->top, cl);
+    #ifdef LUAU_NANBOX_DIAG
+    if (!ttisfunction(L->top))
+    {
+        fprintf(stderr, "[nb] pushcclosure not function: ttype=%d nb=%p name=%s\n",
+            ttype(L->top), (void*)(uintptr_t)L->top->nb, debugname ? debugname : "(null)");
+    }
+    #endif
     LUAU_ASSERT(iswhite(obj2gco(cl)));
     api_incr_top(L);
 }
@@ -901,6 +916,7 @@ void lua_setfield(lua_State* L, int idx, const char* k)
     api_checknelems(L, 1);
     StkId t = index2addr(L, idx);
     api_checkvalidindex(L, t);
+    api_check(L, ttistable(t));
     TValue key;
     setsvalue(L, &key, luaS_new(L, k));
     luaV_settable(L, t, &key, L->top - 1);

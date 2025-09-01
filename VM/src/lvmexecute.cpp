@@ -3111,11 +3111,12 @@ int luau_precall(lua_State* L, StkId func, int nresults)
         // copy return values into parent stack (but only up to nresults!), fill the rest with nil
         // TODO: it might be worthwhile to handle the case when nresults==b explicitly?
         StkId res = ci->func;
-        StkId vali = L->top - n;
-        StkId valend = L->top;
+        StkId retStart = L->top - n;
+        StkId retEnd = L->top;
+        StkId vali = retStart;
 
         int i;
-        for (i = nresults; i != 0 && vali < valend; i--)
+        for (i = nresults; i != 0 && vali < retEnd; i--)
             setobj2s(L, res++, vali++);
         while (i-- > 0)
             setnilvalue(res++);
@@ -3139,11 +3140,12 @@ void luau_poscall(lua_State* L, StkId first)
     // copy return values into parent stack (but only up to nresults!), fill the rest with nil
     // TODO: it might be worthwhile to handle the case when nresults==b explicitly?
     StkId res = ci->func;
-    StkId vali = first;
-    StkId valend = L->top;
+    StkId retStart = first;
+    StkId retEnd = L->top;
+    StkId vali = retStart;
 
     int i;
-    for (i = ci->nresults; i != 0 && vali < valend; i--)
+    for (i = ci->nresults; i != 0 && vali < retEnd; i--)
         setobj2s(L, res++, vali++);
     while (i-- > 0)
         setnilvalue(res++);

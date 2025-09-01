@@ -58,9 +58,12 @@ static void validatetable(global_State* g, LuaTable* h)
         if (!ttisnil(gval(n)))
         {
             TValue k = {};
+#if LUAU_NANBOX
+            k.nb = gkey(n)->nb;
+#else
             k.tt = gkey(n)->tt;
             k.value = gkey(n)->value;
-
+#endif
             validateref(g, obj2gco(h), &k);
             validateref(g, obj2gco(h), gval(n));
         }

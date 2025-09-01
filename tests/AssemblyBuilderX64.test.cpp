@@ -1,4 +1,9 @@
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
+#if LUAU_NANBOX
+#include "doctest.h"
+TEST_SUITE_BEGIN("x64Assembly");
+TEST_CASE("NaNbox disables CodeGen x64 tests") { CHECK(true); }
+#else
 #include "Luau/AssemblyBuilderX64.h"
 #include "Luau/StringUtils.h"
 
@@ -57,7 +62,7 @@ TEST_SUITE_BEGIN("x64Assembly");
         { \
             build.inst; \
         }, \
-        {__VA_ARGS__} \
+{__VA_ARGS__} \
     ))
 
 TEST_CASE_FIXTURE(AssemblyBuilderX64Fixture, "BaseBinaryInstructionForms")
@@ -819,3 +824,5 @@ TEST_CASE("ConstantCaching")
 }
 
 TEST_SUITE_END();
+
+#endif

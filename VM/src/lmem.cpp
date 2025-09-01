@@ -111,12 +111,17 @@
 #define ABISWITCH(x64, ms32, gcc32) (sizeof(void*) == 8 ? x64 : ms32)
 #endif
 
-#if LUA_VECTOR_SIZE == 4
+#if LUAU_NANBOX
+static_assert(sizeof(TValue) == 8, "size mismatch for value (NaNbox)");
+static_assert(sizeof(LuaNode) == 24, "size mismatch for table entry (NaNbox)");
+#else
+# if LUA_VECTOR_SIZE == 4
 static_assert(sizeof(TValue) == ABISWITCH(24, 24, 24), "size mismatch for value");
 static_assert(sizeof(LuaNode) == ABISWITCH(48, 48, 48), "size mismatch for table entry");
-#else
+# else
 static_assert(sizeof(TValue) == ABISWITCH(16, 16, 16), "size mismatch for value");
 static_assert(sizeof(LuaNode) == ABISWITCH(32, 32, 32), "size mismatch for table entry");
+# endif
 #endif
 
 static_assert(offsetof(TString, data) == ABISWITCH(24, 20, 20), "size mismatch for string header");

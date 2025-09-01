@@ -40,15 +40,28 @@
 static_assert(offsetof(LuaNode, val) == 0, "Unexpected Node memory layout, pointer cast in gval2slot is incorrect");
 
 // TKey is bitpacked for memory efficiency so we need to validate bit counts for worst case
+#if LUAU_NANBOX
+static_assert(TKey{0, LUA_TDEADKEY, 0}.tt == LUA_TDEADKEY, "not enough bits for tt");
+static_assert(TKey{0, LUA_TNIL, MAXSIZE - 1}.next == MAXSIZE - 1, "not enough bits for next");
+static_assert(TKey{0, LUA_TNIL, -(MAXSIZE - 1)}.next == -(MAXSIZE - 1), "not enough bits for next");
+#else
 static_assert(TKey{{NULL}, {0}, LUA_TDEADKEY, 0}.tt == LUA_TDEADKEY, "not enough bits for tt");
 static_assert(TKey{{NULL}, {0}, LUA_TNIL, MAXSIZE - 1}.next == MAXSIZE - 1, "not enough bits for next");
 static_assert(TKey{{NULL}, {0}, LUA_TNIL, -(MAXSIZE - 1)}.next == -(MAXSIZE - 1), "not enough bits for next");
+#endif
 
 // empty hash data points to dummynode so that we can always dereference it
+#if LUAU_NANBOX
+const LuaNode luaH_dummynode = {
+    { Luau::VM::nb_from_nil() },           // value
+    { Luau::VM::nb_from_nil(), LUA_TNIL, 0 } // key
+};
+#else
 const LuaNode luaH_dummynode = {
     {{NULL}, {0}, LUA_TNIL},   // value
     {{NULL}, {0}, LUA_TNIL, 0} // key
 };
+#endif
 
 #define dummynode (&luaH_dummynode)
 

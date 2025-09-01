@@ -161,6 +161,25 @@ void luaF_closeupval(lua_State* L, UpVal* uv, bool dead)
 
 void luaF_freeproto(lua_State* L, Proto* f, lua_Page* page)
 {
+#if LUAU_NANBOX
+    // Free vector constant payloads stored in Proto->k under NaNbox
+    if (f->k)
+    {
+        for (int j = 0; j < f->sizek; ++j)
+        {
+            TValue* kv = &f->k[j];
+            if (ttisvector(kv))
+            {
+#if LUA_VECTOR_SIZE == 4
+                luaM_freearray(L, (float*)vvalue(kv), 4, float, f->memcat);
+#else
+                luaM_freearray(L, (float*)vvalue(kv), 3, float, f->memcat);
+#endif
+                setnilvalue(kv);
+            }
+        }
+    }
+#endif
     luaM_freearray(L, f->code, f->sizecode, Instruction, f->memcat);
     luaM_freearray(L, f->p, f->sizep, Proto*, f->memcat);
     luaM_freearray(L, f->k, f->sizek, TValue, f->memcat);

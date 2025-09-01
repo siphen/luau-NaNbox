@@ -1,4 +1,5 @@
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
+#if !LUAU_NANBOX
 #include "Luau/SharedCodeAllocator.h"
 
 #include "Luau/CodeAllocator.h"
@@ -24,6 +25,11 @@ constexpr size_t kMaxTotalSize = 1024 * 1024;
 static const uint8_t fakeCode[1] = {0x00};
 
 TEST_SUITE_BEGIN("SharedCodeAllocator");
+#else
+#include "doctest.h"
+TEST_SUITE_BEGIN("SharedCodeAllocator");
+TEST_CASE("NaNbox disables shared code allocator tests") { CHECK(true); }
+#endif
 
 TEST_CASE("NativeModuleRefRefcounting")
 {

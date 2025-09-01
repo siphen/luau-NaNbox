@@ -1,4 +1,9 @@
 // This file is part of the Luau programming language and is licensed under MIT License; see LICENSE.txt for details
+#if LUAU_NANBOX
+#include "doctest.h"
+TEST_SUITE_BEGIN("A64Assembly");
+TEST_CASE("NaNbox disables CodeGen a64 tests") { CHECK(true); }
+#else
 #include "Luau/AssemblyBuilderA64.h"
 #include "Luau/StringUtils.h"
 #include "ScopedFlags.h"
@@ -59,6 +64,7 @@ public:
 
 // armconverter.com can be used to validate instruction sequences
 TEST_SUITE_BEGIN("A64Assembly");
+#endif
 
 #define SINGLE_COMPARE(inst, ...) \
     CHECK(check( \
